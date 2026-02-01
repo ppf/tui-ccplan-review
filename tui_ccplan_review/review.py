@@ -71,6 +71,27 @@ class PlanReview:
             type=comment_type  # type: ignore
         ))
 
+    def get_comments_at_line(self, line: int) -> list[Comment]:
+        """Get all comments at a specific line."""
+        return [c for c in self.comments if c.line_number == line]
+
+    def delete_comment_at_line(self, line: int) -> bool:
+        """Delete first comment at specified line. Returns True if deleted."""
+        for i, comment in enumerate(self.comments):
+            if comment.line_number == line:
+                self.comments.pop(i)
+                return True
+        return False
+
+    def update_comment_at_line(self, line: int, new_text: str) -> bool:
+        """Update first comment at specified line. Returns True if updated."""
+        for comment in self.comments:
+            if comment.line_number == line:
+                comment.text = new_text
+                comment.timestamp = datetime.now().isoformat()
+                return True
+        return False
+
     def update_section_status(
         self,
         start: int,

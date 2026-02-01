@@ -9,7 +9,7 @@ from rich.text import Text
 from rich.console import RenderableType
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Header, Static, Input
 from textual.binding import Binding
 
 from .review import PlanReview
@@ -248,6 +248,8 @@ class PlanReviewApp(App):
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("c", "add_comment", "Comment"),
+        Binding("e", "edit_comment", "Edit"),
+        Binding("d", "delete_comment", "Delete"),
         Binding("l", "jump_to_line", "Jump"),
         Binding("a", "approve_section", "Approve"),
         Binding("r", "reject_section", "Reject"),
@@ -294,6 +296,53 @@ class PlanReviewApp(App):
                 self.notify(f"💬 Comment added to line {current_line}")
 
         self.push_screen(CommentModal(current_line), handle_comment)
+
+    def action_delete_comment(self) -> None:
+        """Delete comment at current line."""
+        if not self.viewer:
+            return
+
+        current_line = self.viewer.current_line
+        comments = self.review.get_comments_at_line(current_line)
+
+        if not comments:
+            self.notify(f"No comment at line {current_line}", severity="warning")
+            return
+
+        if self.review.delete_comment_at_line(current_line):
+            self.save_and_refresh()
+            self.notify(f"🗑️ Deleted comment at line {current_line}")
+
+    def action_edit_comment(self) -> None:
+        """Edit comment at current line."""
+        if not self.viewer:
+            return
+
+        current_line = self.viewer.current_line
+        comments = self.review.get_comments_at_line(current_line)
+
+        if not comments:
+            self.notify(f"No comment at line {current_line}", severity="warning")
+            return
+
+        # Get existing comment text
+        existing_text = comments[0].text
+
+        def handle_edit(new_text: Optional[str]) -> None:
+            if new_text and new_text != existing_text:
+                self.review.update_comment_at_line(current_line, new_text)
+                self.save_and_refresh()
+                self.notify(f"✏️ Updated comment at line {current_line}")
+
+        # Reuse CommentModal but with existing text
+        modal = CommentModal(current_line)
+        # Pre-fill with existing text
+        def setup_modal() -> None:
+            comment_input = modal.query_one("#comment-input", Input)
+            comment_input.value = existing_text
+
+        modal.on_mount = setup_modal  # type: ignore
+        self.push_screen(modal, handle_edit)
 
     def action_jump_to_line(self) -> None:
         """Jump to a specific line."""
@@ -398,8 +447,10 @@ class PlanReviewApp(App):
         help_text = """
 **Keyboard Shortcuts:**
 
-- `l` - Jump to line (shows line picker)
-- `c` - Add comment (defaults to current line)
+- `l` - Jump to line
+- `c` - Add comment
+- `e` - Edit comment at current line
+- `d` - Delete comment at current line
 - `a` - Approve current section
 - `r` - Reject current section
 - `n` - Next section
@@ -410,10 +461,6 @@ class PlanReviewApp(App):
 **Navigation:**
 - `↑/↓` or `j/k` - Scroll
 - `Home/End` or `g/G` - Top/Bottom
-
-**Workflow:**
-1. Press `l` to jump to a line
-2. Press `c` to comment on that line
         """
         self.notify(help_text.strip(), title="Help", timeout=10)
 
