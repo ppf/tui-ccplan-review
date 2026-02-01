@@ -6,9 +6,10 @@ from typing import Optional
 
 import pyperclip
 from rich.text import Text
+from rich.console import RenderableType
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
-from textual.widgets import Footer, Header, Markdown, Static
+from textual.widgets import Footer, Header, Static
 from textual.binding import Binding
 
 from .review import PlanReview
@@ -31,6 +32,8 @@ class PlanViewer(VerticalScroll):
     def on_mount(self) -> None:
         """Load and display plan."""
         self.load_plan()
+        # Mount initial Static widget
+        self.mount(Static(""))
         self.render_plan()
 
     def load_plan(self) -> None:
@@ -68,18 +71,22 @@ class PlanViewer(VerticalScroll):
             self.scroll_to(y=max(0, line_num - 3), animate=True)
 
     def render_plan(self) -> None:
-        """Render plan with annotations."""
+        """Render plan with Rich Text for better styling."""
         lines = self.plan_content.split("\n")
-        content_parts = []
 
         # Get current section for highlighting
         current_section = self.get_current_section()
         current_start = current_section[0] if current_section else -1
+        current_end = current_section[2] if current_section else -1
+
+        # Build Rich Text with line numbers and backgrounds
+        text = Text()
+        line_num_width = len(str(len(lines)))
 
         for i, line in enumerate(lines, 1):
             # Check for section status
             section_status = ""
-            is_current = False
+            is_current_section = False
 
             for section in self.review.sections:
                 if section.start_line <= i <= section.end_line:
@@ -89,33 +96,61 @@ class PlanViewer(VerticalScroll):
                         section_status = " ❌"
                     # Check if this is the current section
                     if section.start_line == current_start:
-                        is_current = True
+                        is_current_section = True
                     break
 
-            # Add line with status and highlighting (NO line numbers to preserve markdown)
-            if line.startswith("## "):
-                if is_current:
-                    # Highlight current section with line number
-                    content_parts.append(f"**>>> [{i}] {line}{section_status} <<<**")
-                elif section_status:
-                    content_parts.append(f"{line}{section_status}")
-                else:
-                    content_parts.append(line)
-            elif i == self.current_line and not line.startswith("#"):
-                # Show current line marker for non-headers
-                content_parts.append(f"**→ [{i}] {line}**")
+            # Line number
+            line_num = f"{i:>{line_num_width}} "
+
+            # Determine styles based on context
+            is_current_line = (i == self.current_line)
+            is_header = line.startswith("#")
+
+            # Add line number
+            if is_current_line:
+                text.append(f"→{i:<{line_num_width}} ", style="bold yellow")
             else:
-                content_parts.append(line)
+                text.append(line_num, style="dim")
+
+            # Add content with appropriate styling
+            if line.startswith("## "):
+                # Section header
+                if is_current_section:
+                    text.append(line + section_status, style="bold white on blue")
+                else:
+                    text.append(line + section_status, style="bold cyan")
+            elif line.startswith("# "):
+                # Main title
+                text.append(line, style="bold magenta")
+            elif line.startswith("### "):
+                # Subsection
+                text.append(line, style="bold green")
+            elif is_current_line:
+                # Current line highlight
+                text.append(line, style="on dark_blue")
+            elif line.startswith("- ") or line.startswith("* "):
+                # Bullet points
+                text.append(line, style="cyan")
+            elif line.startswith("**") or "**" in line:
+                # Bold text
+                text.append(line, style="bold")
+            else:
+                # Regular text
+                text.append(line)
+
+            text.append("\n")
 
             # Add comments after line
             line_comments = [c for c in self.review.comments if c.line_number == i]
             for comment in line_comments:
                 emoji = {"comment": "💬", "question": "❓", "suggestion": "💡"}.get(comment.type, "💬")
-                content_parts.append(f"> {emoji} **[Line {i}]** {comment.text}")
+                text.append(f"   {emoji} [Line {i}] {comment.text}\n", style="italic yellow")
 
-        # Update markdown
-        self.query(Markdown).remove()
-        self.mount(Markdown("\n".join(content_parts)))
+        # Update display with Static widget
+        self.query(Static).remove()
+        static = Static(text)
+        static.styles.height = "auto"
+        self.mount(static)
 
     def get_current_section(self) -> Optional[tuple[int, int, str]]:
         """Get section at current scroll position."""
