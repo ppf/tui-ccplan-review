@@ -266,3 +266,16 @@ class CommentSelectorModal(ModalScreen[int]):
             # Extract index from button id
             index = int(event.button.id.split("-")[1])
             self.dismiss(index)
+
+    def on_key(self, event) -> None:
+        """Handle keyboard shortcuts."""
+        # Check if it's a number key
+        if event.key in "123456789":
+            num = int(event.key)
+            # Check if this number is valid (within range of comments)
+            if 1 <= num <= len(self.comments):
+                self.dismiss(num - 1)  # Convert 1-based to 0-based index
+                event.prevent_default()
+        elif event.key == "escape":
+            self.dismiss(None)
+            event.prevent_default()
