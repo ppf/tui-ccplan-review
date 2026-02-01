@@ -95,28 +95,30 @@ class PlanViewer(VerticalScroll):
 
             # Format line number with marker for current line
             if i == self.current_line:
-                line_num = f"→{i:>{line_num_width-1}}"
+                line_marker = "→"
+                line_num_str = f"{i:>{line_num_width-1}}"
             else:
-                line_num = f"{i:>{line_num_width}}"
+                line_marker = " "
+                line_num_str = f"{i:>{line_num_width}}"
 
             # Add line with line number, status and highlighting
             if line.startswith("## "):
                 if is_current:
                     # Highlight current section
-                    content_parts.append(f"`{line_num}` **>>> {line}{section_status} <<<**")
+                    content_parts.append(f"{line_marker}{line_num_str} **>>> {line}{section_status} <<<**")
                 elif section_status:
-                    content_parts.append(f"`{line_num}` {line}{section_status}")
+                    content_parts.append(f"{line_marker}{line_num_str} {line}{section_status}")
                 else:
-                    content_parts.append(f"`{line_num}` {line}")
+                    content_parts.append(f"{line_marker}{line_num_str} {line}")
             elif line.startswith("#"):
                 # Other headers (# or ###)
-                content_parts.append(f"`{line_num}` {line}")
+                content_parts.append(f"{line_marker}{line_num_str} {line}")
             else:
                 # Regular lines - highlight current line
                 if i == self.current_line:
-                    content_parts.append(f"`{line_num}` **{line}**")
+                    content_parts.append(f"{line_marker}{line_num_str} **{line}**")
                 else:
-                    content_parts.append(f"`{line_num}` {line}")
+                    content_parts.append(f"{line_marker}{line_num_str} {line}")
 
             # Add comments after line
             line_comments = [c for c in self.review.comments if c.line_number == i]
