@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tui-ccplan-review"
+version = "0.1.0"
+description = "Terminal TUI for interactive Claude Code plan reviews"
+authors = [{name = "Storm", email = "storm@example.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "textual>=0.47.0",
+    "rich>=13.0.0",
+    "pyperclip>=1.8.0",
+]
+
+[project.scripts]
+ccplan-review = "tui_ccplan_review.__main__:main"
+plan-review-tui = "tui_ccplan_review.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tui_ccplan_review*"]
