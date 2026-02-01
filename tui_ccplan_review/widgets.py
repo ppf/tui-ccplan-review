@@ -7,7 +7,7 @@ from textual.widgets import Input, Label, Button, RadioSet, RadioButton
 
 
 class CommentModal(ModalScreen[str]):
-    """Modal for adding comments."""
+    """Modal for adding/editing comments."""
 
     CSS = """
     CommentModal {
@@ -38,18 +38,27 @@ class CommentModal(ModalScreen[str]):
     }
     """
 
-    def __init__(self, line_number: int = 1):
+    def __init__(self, line_number: int = 1, existing_text: str = ""):
         super().__init__()
         self.line_number = line_number
+        self.existing_text = existing_text
+        self.is_edit = bool(existing_text)
 
     def compose(self) -> ComposeResult:
         """Compose modal."""
+        title = f"Edit Comment - Line {self.line_number}" if self.is_edit else f"Add Comment - Line {self.line_number}"
+        button_text = "Update" if self.is_edit else "Add"
+
         with Container(id="comment-dialog"):
-            yield Label(f"Add Comment - Line {self.line_number}")
-            yield Input(placeholder="Enter your comment...", id="comment-input")
+            yield Label(title)
+            yield Input(
+                placeholder="Enter your comment...",
+                value=self.existing_text,
+                id="comment-input"
+            )
             with Container(id="buttons"):
                 yield Button("Cancel", variant="default", id="cancel")
-                yield Button("Add", variant="primary", id="add")
+                yield Button(button_text, variant="primary", id="add")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press."""

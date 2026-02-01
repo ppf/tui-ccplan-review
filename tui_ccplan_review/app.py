@@ -334,15 +334,8 @@ class PlanReviewApp(App):
                 self.save_and_refresh()
                 self.notify(f"✏️ Updated comment at line {current_line}")
 
-        # Reuse CommentModal but with existing text
-        modal = CommentModal(current_line)
-        # Pre-fill with existing text
-        def setup_modal() -> None:
-            comment_input = modal.query_one("#comment-input", Input)
-            comment_input.value = existing_text
-
-        modal.on_mount = setup_modal  # type: ignore
-        self.push_screen(modal, handle_edit)
+        # Create modal with existing text
+        self.push_screen(CommentModal(current_line, existing_text), handle_edit)
 
     def action_jump_to_line(self) -> None:
         """Jump to a specific line."""
