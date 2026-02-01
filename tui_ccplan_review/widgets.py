@@ -50,12 +50,15 @@ class CommentModal(ModalScreen[tuple[int, str, str]]):
         """Compose modal."""
         with Container(id="comment-dialog"):
             yield Label("Add Comment")
+            yield Label("Line number:")
             yield Input(
                 placeholder="Line number",
                 value=str(self.default_line),
                 id="line-input"
             )
+            yield Label("Comment text:")
             yield Input(placeholder="Enter your comment...", id="comment-input")
+            yield Label("Type:")
             with RadioSet(id="comment-type"):
                 yield RadioButton("💬 Comment", value=True)
                 yield RadioButton("❓ Question")

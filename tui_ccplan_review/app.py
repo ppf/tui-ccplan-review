@@ -74,9 +74,6 @@ class PlanViewer(VerticalScroll):
         current_section = self.get_current_section()
         current_start = current_section[0] if current_section else -1
 
-        # Calculate line number width for alignment
-        line_num_width = len(str(len(lines)))
-
         for i, line in enumerate(lines, 1):
             # Check for section status
             section_status = ""
@@ -93,38 +90,26 @@ class PlanViewer(VerticalScroll):
                         is_current = True
                     break
 
-            # Format line number with marker for current line
-            if i == self.current_line:
-                line_marker = "→"
-                line_num_str = f"{i:>{line_num_width-1}}"
-            else:
-                line_marker = " "
-                line_num_str = f"{i:>{line_num_width}}"
-
-            # Add line with line number, status and highlighting
+            # Add line with status and highlighting (NO line numbers to preserve markdown)
             if line.startswith("## "):
                 if is_current:
-                    # Highlight current section
-                    content_parts.append(f"{line_marker}{line_num_str} **>>> {line}{section_status} <<<**")
+                    # Highlight current section with line number
+                    content_parts.append(f"**>>> [{i}] {line}{section_status} <<<**")
                 elif section_status:
-                    content_parts.append(f"{line_marker}{line_num_str} {line}{section_status}")
+                    content_parts.append(f"{line}{section_status}")
                 else:
-                    content_parts.append(f"{line_marker}{line_num_str} {line}")
-            elif line.startswith("#"):
-                # Other headers (# or ###)
-                content_parts.append(f"{line_marker}{line_num_str} {line}")
+                    content_parts.append(line)
+            elif i == self.current_line and not line.startswith("#"):
+                # Show current line marker for non-headers
+                content_parts.append(f"**→ [{i}] {line}**")
             else:
-                # Regular lines - highlight current line
-                if i == self.current_line:
-                    content_parts.append(f"{line_marker}{line_num_str} **{line}**")
-                else:
-                    content_parts.append(f"{line_marker}{line_num_str} {line}")
+                content_parts.append(line)
 
             # Add comments after line
             line_comments = [c for c in self.review.comments if c.line_number == i]
             for comment in line_comments:
                 emoji = {"comment": "💬", "question": "❓", "suggestion": "💡"}.get(comment.type, "💬")
-                content_parts.append(f"\n> {emoji} **[Line {i}]** {comment.text}\n")
+                content_parts.append(f"> {emoji} **[Line {i}]** {comment.text}")
 
         # Update markdown
         self.query(Markdown).remove()
