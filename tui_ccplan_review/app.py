@@ -12,7 +12,7 @@ from textual.widgets import Footer, Header, Markdown, Static
 from textual.binding import Binding
 
 from .review import PlanReview
-from .widgets import CommentModal, RejectModal
+from .widgets import CommentModal, RejectModal, LineJumpModal
 
 
 class PlanViewer(VerticalScroll):
@@ -23,9 +23,10 @@ class PlanViewer(VerticalScroll):
         self.plan_path = plan_path
         self.review = review
         self.plan_content = ""
-        self.current_line = 0
+        self.current_line = 1
         self.current_section_index = 0
         self.sections: list[tuple[int, int, str]] = []
+        self.total_lines = 0
 
     def on_mount(self) -> None:
         """Load and display plan."""
@@ -39,6 +40,7 @@ class PlanViewer(VerticalScroll):
 
         # Parse sections (lines starting with ##)
         lines = self.plan_content.split("\n")
+        self.total_lines = len(lines)
         current_section: Optional[tuple[int, str]] = None
 
         for i, line in enumerate(lines, 1):
@@ -51,6 +53,17 @@ class PlanViewer(VerticalScroll):
         # Close final section
         if current_section:
             self.sections.append((current_section[0], len(lines), current_section[1]))
+
+    def jump_to_line(self, line_num: int) -> None:
+        """Jump to a specific line."""
+        if 1 <= line_num <= self.total_lines:
+            self.current_line = line_num
+            # Update current section based on line
+            for idx, section in enumerate(self.sections):
+                start, end, _ = section
+                if start <= line_num <= end:
+                    self.current_section_index = idx
+                    break
 
     def render_plan(self) -> None:
         """Render plan with annotations."""
@@ -80,8 +93,11 @@ class PlanViewer(VerticalScroll):
                         is_current = True
                     break
 
-            # Format line number
-            line_num = f"{i:>{line_num_width}}"
+            # Format line number with marker for current line
+            if i == self.current_line:
+                line_num = f"→{i:>{line_num_width-1}}"
+            else:
+                line_num = f"{i:>{line_num_width}}"
 
             # Add line with line number, status and highlighting
             if line.startswith("## "):
@@ -96,8 +112,11 @@ class PlanViewer(VerticalScroll):
                 # Other headers (# or ###)
                 content_parts.append(f"`{line_num}` {line}")
             else:
-                # Regular lines
-                content_parts.append(f"`{line_num}` {line}")
+                # Regular lines - highlight current line
+                if i == self.current_line:
+                    content_parts.append(f"`{line_num}` **{line}**")
+                else:
+                    content_parts.append(f"`{line_num}` {line}")
 
             # Add comments after line
             line_comments = [c for c in self.review.comments if c.line_number == i]
@@ -192,6 +211,7 @@ class PlanReviewApp(App):
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("c", "add_comment", "Comment"),
+        Binding("l", "jump_to_line", "Jump"),
         Binding("a", "approve_section", "Approve"),
         Binding("r", "reject_section", "Reject"),
         Binding("n", "next_section", "Next"),
@@ -227,12 +247,8 @@ class PlanReviewApp(App):
 
     def action_add_comment(self) -> None:
         """Add comment to current line."""
-        # Get default line from current section
-        default_line = 1
-        if self.viewer:
-            section = self.viewer.get_current_section()
-            if section:
-                default_line = section[0]  # Use section start line
+        # Use current line as default
+        default_line = self.viewer.current_line if self.viewer else 1
 
         def handle_comment(result: Optional[tuple[int, str, str]]) -> None:
             if result:
@@ -241,6 +257,23 @@ class PlanReviewApp(App):
                 self.save_and_refresh()
 
         self.push_screen(CommentModal(default_line), handle_comment)
+
+    def action_jump_to_line(self) -> None:
+        """Jump to a specific line."""
+        if not self.viewer:
+            return
+
+        max_line = self.viewer.total_lines
+
+        def handle_jump(line_num: Optional[int]) -> None:
+            if line_num and self.viewer:
+                self.viewer.jump_to_line(line_num)
+                self.viewer.render_plan()
+                if self.status_bar:
+                    self.status_bar.update_status()
+                self.notify(f"→ Line {line_num}")
+
+        self.push_screen(LineJumpModal(max_line), handle_jump)
 
     def action_approve_section(self) -> None:
         """Approve current section."""
@@ -308,7 +341,8 @@ class PlanReviewApp(App):
         help_text = """
 **Keyboard Shortcuts:**
 
-- `c` - Add comment (with line number)
+- `l` - Jump to line (shows line picker)
+- `c` - Add comment (defaults to current line)
 - `a` - Approve current section
 - `r` - Reject current section
 - `n` - Next section
@@ -319,8 +353,12 @@ class PlanReviewApp(App):
 **Navigation:**
 - `↑/↓` or `j/k` - Scroll
 - `Home/End` or `g/G` - Top/Bottom
+
+**Workflow:**
+1. Press `l` to jump to a line
+2. Press `c` to comment on that line
         """
-        self.notify(help_text.strip(), title="Help", timeout=8)
+        self.notify(help_text.strip(), title="Help", timeout=10)
 
     def save_and_refresh(self) -> None:
         """Save review and refresh display."""

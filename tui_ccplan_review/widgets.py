@@ -151,3 +151,67 @@ class RejectModal(ModalScreen[str]):
         """Handle Enter key in input."""
         if event.input.id == "reason-input":
             self.query_one("#reject", Button).press()
+
+
+class LineJumpModal(ModalScreen[int]):
+    """Modal for jumping to a specific line."""
+
+    CSS = """
+    LineJumpModal {
+        align: center middle;
+    }
+
+    #jump-dialog {
+        width: 40;
+        height: auto;
+        border: thick $background 80%;
+        background: $surface;
+        padding: 1 2;
+    }
+
+    #line-input {
+        margin: 1 0;
+    }
+
+    #buttons {
+        width: 100%;
+        height: auto;
+        align: right middle;
+        margin-top: 1;
+    }
+
+    Button {
+        margin: 0 1;
+    }
+    """
+
+    def __init__(self, max_line: int):
+        super().__init__()
+        self.max_line = max_line
+
+    def compose(self) -> ComposeResult:
+        """Compose modal."""
+        with Container(id="jump-dialog"):
+            yield Label(f"Jump to Line (1-{self.max_line})")
+            yield Input(placeholder="Line number", id="line-input")
+            with Container(id="buttons"):
+                yield Button("Cancel", variant="default", id="cancel")
+                yield Button("Go", variant="primary", id="go")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press."""
+        if event.button.id == "cancel":
+            self.dismiss(None)
+        elif event.button.id == "go":
+            input_widget = self.query_one("#line-input", Input)
+            try:
+                line_num = int(input_widget.value.strip())
+                if 1 <= line_num <= self.max_line:
+                    self.dismiss(line_num)
+            except ValueError:
+                pass
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Handle Enter key in input."""
+        if event.input.id == "line-input":
+            self.query_one("#go", Button).press()
