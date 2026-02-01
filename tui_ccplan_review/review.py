@@ -75,21 +75,21 @@ class PlanReview:
         """Get all comments at a specific line."""
         return [c for c in self.comments if c.line_number == line]
 
-    def delete_comment_at_line(self, line: int) -> bool:
-        """Delete first comment at specified line. Returns True if deleted."""
-        for i, comment in enumerate(self.comments):
-            if comment.line_number == line:
-                self.comments.pop(i)
-                return True
+    def delete_comment_at_line(self, line: int, index: int = 0) -> bool:
+        """Delete comment at specified line and index. Returns True if deleted."""
+        line_comments = [c for c in self.comments if c.line_number == line]
+        if index < len(line_comments):
+            self.comments.remove(line_comments[index])
+            return True
         return False
 
-    def update_comment_at_line(self, line: int, new_text: str) -> bool:
-        """Update first comment at specified line. Returns True if updated."""
-        for comment in self.comments:
-            if comment.line_number == line:
-                comment.text = new_text
-                comment.timestamp = datetime.now().isoformat()
-                return True
+    def update_comment_at_line(self, line: int, new_text: str, index: int = 0) -> bool:
+        """Update comment at specified line and index. Returns True if updated."""
+        line_comments = [c for c in self.comments if c.line_number == line]
+        if index < len(line_comments):
+            line_comments[index].text = new_text
+            line_comments[index].timestamp = datetime.now().isoformat()
+            return True
         return False
 
     def update_section_status(

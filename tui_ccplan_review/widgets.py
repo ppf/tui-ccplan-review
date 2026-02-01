@@ -1,5 +1,6 @@
 """Custom Textual widgets."""
 
+from typing import Optional
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import ModalScreen
@@ -196,3 +197,72 @@ class LineJumpModal(ModalScreen[int]):
         """Handle Enter key in input."""
         if event.input.id == "line-input":
             self.query_one("#go", Button).press()
+
+
+class CommentSelectorModal(ModalScreen[int]):
+    """Modal for selecting which comment to edit/delete."""
+
+    CSS = """
+    CommentSelectorModal {
+        align: center middle;
+    }
+
+    #selector-dialog {
+        width: 70;
+        height: auto;
+        border: thick $background 80%;
+        background: $surface;
+        padding: 1 2;
+    }
+
+    .comment-option {
+        margin: 1 0;
+        padding: 1;
+        background: $panel;
+        border: solid $border;
+    }
+
+    .comment-option:hover {
+        background: $primary-background;
+    }
+
+    #buttons {
+        width: 100%;
+        height: auto;
+        align: right middle;
+        margin-top: 1;
+    }
+
+    Button {
+        margin: 0 1;
+    }
+    """
+
+    def __init__(self, comments: list, action: str = "select"):
+        super().__init__()
+        self.comments = comments
+        self.action = action
+        self.selected_index: Optional[int] = None
+
+    def compose(self) -> ComposeResult:
+        """Compose modal."""
+        with Container(id="selector-dialog"):
+            yield Label(f"Select comment to {self.action}:")
+            for i, comment in enumerate(self.comments):
+                btn = Button(
+                    f"{i+1}. {comment.text[:50]}{'...' if len(comment.text) > 50 else ''}",
+                    id=f"comment-{i}",
+                    classes="comment-option"
+                )
+                yield btn
+            with Container(id="buttons"):
+                yield Button("Cancel", variant="default", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press."""
+        if event.button.id == "cancel":
+            self.dismiss(None)
+        elif event.button.id and event.button.id.startswith("comment-"):
+            # Extract index from button id
+            index = int(event.button.id.split("-")[1])
+            self.dismiss(index)

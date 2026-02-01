@@ -13,7 +13,7 @@ from textual.widgets import Footer, Header, Static, Input
 from textual.binding import Binding
 
 from .review import PlanReview
-from .widgets import CommentModal, RejectModal, LineJumpModal
+from .widgets import CommentModal, RejectModal, LineJumpModal, CommentSelectorModal
 
 
 class PlanViewer(VerticalScroll):
@@ -309,9 +309,20 @@ class PlanReviewApp(App):
             self.notify(f"No comment at line {current_line}", severity="warning")
             return
 
-        if self.review.delete_comment_at_line(current_line):
-            self.save_and_refresh()
-            self.notify(f"🗑️ Deleted comment at line {current_line}")
+        # If multiple comments, show selector
+        if len(comments) > 1:
+            def handle_selection(index: Optional[int]) -> None:
+                if index is not None:
+                    self.review.delete_comment_at_line(current_line, index)
+                    self.save_and_refresh()
+                    self.notify(f"🗑️ Deleted comment #{index+1} at line {current_line}")
+
+            self.push_screen(CommentSelectorModal(comments, "delete"), handle_selection)
+        else:
+            # Single comment, delete directly
+            if self.review.delete_comment_at_line(current_line):
+                self.save_and_refresh()
+                self.notify(f"🗑️ Deleted comment at line {current_line}")
 
     def action_edit_comment(self) -> None:
         """Edit comment at current line."""
@@ -325,17 +336,32 @@ class PlanReviewApp(App):
             self.notify(f"No comment at line {current_line}", severity="warning")
             return
 
-        # Get existing comment text
-        existing_text = comments[0].text
+        # If multiple comments, show selector
+        if len(comments) > 1:
+            def handle_selection(index: Optional[int]) -> None:
+                if index is not None:
+                    existing_text = comments[index].text
 
-        def handle_edit(new_text: Optional[str]) -> None:
-            if new_text and new_text != existing_text:
-                self.review.update_comment_at_line(current_line, new_text)
-                self.save_and_refresh()
-                self.notify(f"✏️ Updated comment at line {current_line}")
+                    def handle_edit(new_text: Optional[str]) -> None:
+                        if new_text and new_text != existing_text:
+                            self.review.update_comment_at_line(current_line, new_text, index)
+                            self.save_and_refresh()
+                            self.notify(f"✏️ Updated comment #{index+1} at line {current_line}")
 
-        # Create modal with existing text
-        self.push_screen(CommentModal(current_line, existing_text), handle_edit)
+                    self.push_screen(CommentModal(current_line, existing_text), handle_edit)
+
+            self.push_screen(CommentSelectorModal(comments, "edit"), handle_selection)
+        else:
+            # Single comment, edit directly
+            existing_text = comments[0].text
+
+            def handle_edit(new_text: Optional[str]) -> None:
+                if new_text and new_text != existing_text:
+                    self.review.update_comment_at_line(current_line, new_text)
+                    self.save_and_refresh()
+                    self.notify(f"✏️ Updated comment at line {current_line}")
+
+            self.push_screen(CommentModal(current_line, existing_text), handle_edit)
 
     def action_jump_to_line(self) -> None:
         """Jump to a specific line."""
