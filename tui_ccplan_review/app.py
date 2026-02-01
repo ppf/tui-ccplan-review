@@ -24,6 +24,7 @@ class PlanViewer(VerticalScroll):
         self.review = review
         self.plan_content = ""
         self.current_line = 0
+        self.current_section_index = 0
         self.sections: list[tuple[int, int, str]] = []
 
     def on_mount(self) -> None:
@@ -85,20 +86,38 @@ class PlanViewer(VerticalScroll):
 
     def get_current_section(self) -> Optional[tuple[int, int, str]]:
         """Get section at current scroll position."""
-        # Approximate line from scroll position
-        # This is a simplification - in real impl would track actual line
-        for section in self.sections:
-            # Return first section for now
-            return section
+        if not self.sections:
+            return None
+        # Return section at current index
+        if 0 <= self.current_section_index < len(self.sections):
+            return self.sections[self.current_section_index]
         return None
+
+    def next_section(self) -> Optional[tuple[int, int, str]]:
+        """Move to next section."""
+        if not self.sections:
+            return None
+        self.current_section_index = min(
+            self.current_section_index + 1,
+            len(self.sections) - 1
+        )
+        return self.get_current_section()
+
+    def previous_section(self) -> Optional[tuple[int, int, str]]:
+        """Move to previous section."""
+        if not self.sections:
+            return None
+        self.current_section_index = max(self.current_section_index - 1, 0)
+        return self.get_current_section()
 
 
 class StatusBar(Static):
     """Status bar showing review statistics."""
 
-    def __init__(self, review: PlanReview):
+    def __init__(self, review: PlanReview, viewer: Optional["PlanViewer"] = None):
         super().__init__()
         self.review = review
+        self.viewer = viewer
 
     def on_mount(self) -> None:
         """Initial render."""
@@ -111,6 +130,16 @@ class StatusBar(Static):
         comments = len(self.review.comments)
 
         status_text = Text()
+
+        # Show current section
+        if self.viewer:
+            section = self.viewer.get_current_section()
+            if section:
+                _, _, name = section
+                idx = self.viewer.current_section_index + 1
+                total = len(self.viewer.sections)
+                status_text.append(f"📍 [{idx}/{total}] {name}  ", style="bold yellow")
+
         status_text.append("📊 ", style="bold")
         status_text.append(f"Comments: {comments}  ", style="cyan")
         status_text.append(f"Approved: {approved}  ", style="green")
@@ -140,6 +169,8 @@ class PlanReviewApp(App):
         Binding("c", "add_comment", "Comment"),
         Binding("a", "approve_section", "Approve"),
         Binding("r", "reject_section", "Reject"),
+        Binding("n", "next_section", "Next"),
+        Binding("p", "prev_section", "Prev"),
         Binding("s", "generate_summary", "Summary"),
         Binding("?", "show_help", "Help"),
     ]
@@ -155,27 +186,36 @@ class PlanReviewApp(App):
     def compose(self) -> ComposeResult:
         """Compose app layout."""
         yield Header(show_clock=True)
-        yield StatusBar(self.review)
-        yield PlanViewer(self.plan_path, self.review)
+        self.viewer = PlanViewer(self.plan_path, self.review)
+        self.status_bar = StatusBar(self.review, self.viewer)
+        yield self.status_bar
+        yield self.viewer
         yield Footer()
 
     def on_mount(self) -> None:
         """Store widget references."""
-        self.viewer = self.query_one(PlanViewer)
-        self.status_bar = self.query_one(StatusBar)
         self.title = f"Plan Review: {Path(self.plan_path).name}"
         self.sub_title = "Interactive Plan Review Tool"
+        # Trigger initial status update
+        if self.status_bar:
+            self.status_bar.update_status()
 
     def action_add_comment(self) -> None:
         """Add comment to current line."""
-        def handle_comment(result: Optional[tuple[str, str]]) -> None:
+        # Get default line from current section
+        default_line = 1
+        if self.viewer:
+            section = self.viewer.get_current_section()
+            if section:
+                default_line = section[0]  # Use section start line
+
+        def handle_comment(result: Optional[tuple[int, str, str]]) -> None:
             if result:
-                text, comment_type = result
-                # For MVP, use line 1 (would track actual line in full impl)
-                self.review.add_comment(1, text, comment_type)
+                line_num, text, comment_type = result
+                self.review.add_comment(line_num, text, comment_type)
                 self.save_and_refresh()
 
-        self.push_screen(CommentModal(), handle_comment)
+        self.push_screen(CommentModal(default_line), handle_comment)
 
     def action_approve_section(self) -> None:
         """Approve current section."""
@@ -216,14 +256,34 @@ class PlanReviewApp(App):
             summary_file.write_text(summary)
             self.notify(f"💾 Saved to: {summary_file}", severity="information")
 
+    def action_next_section(self) -> None:
+        """Navigate to next section."""
+        if self.viewer:
+            section = self.viewer.next_section()
+            if section and self.status_bar:
+                self.status_bar.update_status()
+                _, _, name = section
+                self.notify(f"→ {name}")
+
+    def action_prev_section(self) -> None:
+        """Navigate to previous section."""
+        if self.viewer:
+            section = self.viewer.previous_section()
+            if section and self.status_bar:
+                self.status_bar.update_status()
+                _, _, name = section
+                self.notify(f"← {name}")
+
     def action_show_help(self) -> None:
         """Show help information."""
         help_text = """
 **Keyboard Shortcuts:**
 
-- `c` - Add comment
-- `a` - Approve section
-- `r` - Reject section
+- `c` - Add comment (with line number)
+- `a` - Approve current section
+- `r` - Reject current section
+- `n` - Next section
+- `p` - Previous section
 - `s` - Generate summary
 - `q` - Quit
 

@@ -6,7 +6,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, Button, RadioSet, RadioButton
 
 
-class CommentModal(ModalScreen[tuple[str, str]]):
+class CommentModal(ModalScreen[tuple[int, str, str]]):
     """Modal for adding comments."""
 
     CSS = """
@@ -22,7 +22,7 @@ class CommentModal(ModalScreen[tuple[str, str]]):
         padding: 1 2;
     }
 
-    #comment-input {
+    #line-input, #comment-input {
         margin: 1 0;
     }
 
@@ -42,10 +42,19 @@ class CommentModal(ModalScreen[tuple[str, str]]):
     }
     """
 
+    def __init__(self, default_line: int = 1):
+        super().__init__()
+        self.default_line = default_line
+
     def compose(self) -> ComposeResult:
         """Compose modal."""
         with Container(id="comment-dialog"):
             yield Label("Add Comment")
+            yield Input(
+                placeholder="Line number",
+                value=str(self.default_line),
+                id="line-input"
+            )
             yield Input(placeholder="Enter your comment...", id="comment-input")
             with RadioSet(id="comment-type"):
                 yield RadioButton("💬 Comment", value=True)
@@ -60,10 +69,17 @@ class CommentModal(ModalScreen[tuple[str, str]]):
         if event.button.id == "cancel":
             self.dismiss(None)
         elif event.button.id == "add":
-            input_widget = self.query_one("#comment-input", Input)
+            line_input = self.query_one("#line-input", Input)
+            comment_input = self.query_one("#comment-input", Input)
             radio = self.query_one("#comment-type", RadioSet)
 
-            comment_text = input_widget.value.strip()
+            # Parse line number
+            try:
+                line_num = int(line_input.value.strip())
+            except ValueError:
+                return
+
+            comment_text = comment_input.value.strip()
             if not comment_text:
                 return
 
@@ -71,7 +87,7 @@ class CommentModal(ModalScreen[tuple[str, str]]):
             pressed_index = radio.pressed_index
             comment_type = ["comment", "question", "suggestion"][pressed_index]
 
-            self.dismiss((comment_text, comment_type))
+            self.dismiss((line_num, comment_text, comment_type))
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle Enter key in input."""
