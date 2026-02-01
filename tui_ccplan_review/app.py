@@ -57,20 +57,35 @@ class PlanViewer(VerticalScroll):
         lines = self.plan_content.split("\n")
         content_parts = []
 
+        # Get current section for highlighting
+        current_section = self.get_current_section()
+        current_start = current_section[0] if current_section else -1
+
         for i, line in enumerate(lines, 1):
             # Check for section status
             section_status = ""
+            is_current = False
+
             for section in self.review.sections:
                 if section.start_line <= i <= section.end_line:
                     if section.status == "approved":
                         section_status = " ✅"
                     elif section.status == "rejected":
                         section_status = " ❌"
+                    # Check if this is the current section
+                    if section.start_line == current_start:
+                        is_current = True
                     break
 
-            # Add line with status
-            if line.startswith("## ") and section_status:
-                content_parts.append(line + section_status)
+            # Add line with status and highlighting
+            if line.startswith("## "):
+                if is_current:
+                    # Highlight current section
+                    content_parts.append(f"**>>> {line}{section_status} <<<**")
+                elif section_status:
+                    content_parts.append(line + section_status)
+                else:
+                    content_parts.append(line)
             else:
                 content_parts.append(line)
 
@@ -260,8 +275,10 @@ class PlanReviewApp(App):
         """Navigate to next section."""
         if self.viewer:
             section = self.viewer.next_section()
-            if section and self.status_bar:
-                self.status_bar.update_status()
+            if section:
+                self.viewer.render_plan()  # Re-render to update highlighting
+                if self.status_bar:
+                    self.status_bar.update_status()
                 _, _, name = section
                 self.notify(f"→ {name}")
 
@@ -269,8 +286,10 @@ class PlanReviewApp(App):
         """Navigate to previous section."""
         if self.viewer:
             section = self.viewer.previous_section()
-            if section and self.status_bar:
-                self.status_bar.update_status()
+            if section:
+                self.viewer.render_plan()  # Re-render to update highlighting
+                if self.status_bar:
+                    self.status_bar.update_status()
                 _, _, name = section
                 self.notify(f"← {name}")
 
