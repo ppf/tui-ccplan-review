@@ -64,6 +64,8 @@ class PlanViewer(VerticalScroll):
                 if start <= line_num <= end:
                     self.current_section_index = idx
                     break
+            # Scroll to line
+            self.scroll_to(y=max(0, line_num - 3), animate=True)
 
     def render_plan(self) -> None:
         """Render plan with annotations."""
@@ -132,14 +134,27 @@ class PlanViewer(VerticalScroll):
             self.current_section_index + 1,
             len(self.sections) - 1
         )
-        return self.get_current_section()
+        section = self.get_current_section()
+        if section:
+            self.scroll_to_section(section[0])
+        return section
 
     def previous_section(self) -> Optional[tuple[int, int, str]]:
         """Move to previous section."""
         if not self.sections:
             return None
         self.current_section_index = max(self.current_section_index - 1, 0)
-        return self.get_current_section()
+        section = self.get_current_section()
+        if section:
+            self.scroll_to_section(section[0])
+        return section
+
+    def scroll_to_section(self, line_num: int) -> None:
+        """Scroll to make section visible."""
+        # Estimate y position based on line number
+        # Assuming ~1 line height per line (rough estimate)
+        # Scroll to that position
+        self.scroll_to(y=max(0, line_num - 3), animate=True)
 
 
 class StatusBar(Static):
