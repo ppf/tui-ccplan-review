@@ -353,25 +353,45 @@ class PlanReviewApp(App):
 
     def action_next_section(self) -> None:
         """Navigate to next section."""
-        if self.viewer:
-            section = self.viewer.next_section()
-            if section:
-                self.viewer.render_plan()  # Re-render to update highlighting
-                if self.status_bar:
-                    self.status_bar.update_status()
+        if not self.viewer:
+            return
+
+        old_index = self.viewer.current_section_index
+        section = self.viewer.next_section()
+
+        if section:
+            self.viewer.render_plan()  # Re-render to update highlighting
+            if self.status_bar:
+                self.status_bar.update_status()
+
+            # Only notify if we actually moved
+            if self.viewer.current_section_index != old_index:
                 _, _, name = section
                 self.notify(f"→ {name}")
+            elif self.viewer.current_section_index == len(self.viewer.sections) - 1:
+                # At last section
+                self.notify("Already at last section", severity="warning")
 
     def action_prev_section(self) -> None:
         """Navigate to previous section."""
-        if self.viewer:
-            section = self.viewer.previous_section()
-            if section:
-                self.viewer.render_plan()  # Re-render to update highlighting
-                if self.status_bar:
-                    self.status_bar.update_status()
+        if not self.viewer:
+            return
+
+        old_index = self.viewer.current_section_index
+        section = self.viewer.previous_section()
+
+        if section:
+            self.viewer.render_plan()  # Re-render to update highlighting
+            if self.status_bar:
+                self.status_bar.update_status()
+
+            # Only notify if we actually moved
+            if self.viewer.current_section_index != old_index:
                 _, _, name = section
                 self.notify(f"← {name}")
+            elif self.viewer.current_section_index == 0:
+                # At first section
+                self.notify("Already at first section", severity="warning")
 
     def action_show_help(self) -> None:
         """Show help information."""
