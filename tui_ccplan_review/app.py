@@ -61,6 +61,9 @@ class PlanViewer(VerticalScroll):
         current_section = self.get_current_section()
         current_start = current_section[0] if current_section else -1
 
+        # Calculate line number width for alignment
+        line_num_width = len(str(len(lines)))
+
         for i, line in enumerate(lines, 1):
             # Check for section status
             section_status = ""
@@ -77,17 +80,24 @@ class PlanViewer(VerticalScroll):
                         is_current = True
                     break
 
-            # Add line with status and highlighting
+            # Format line number
+            line_num = f"{i:>{line_num_width}}"
+
+            # Add line with line number, status and highlighting
             if line.startswith("## "):
                 if is_current:
                     # Highlight current section
-                    content_parts.append(f"**>>> {line}{section_status} <<<**")
+                    content_parts.append(f"`{line_num}` **>>> {line}{section_status} <<<**")
                 elif section_status:
-                    content_parts.append(line + section_status)
+                    content_parts.append(f"`{line_num}` {line}{section_status}")
                 else:
-                    content_parts.append(line)
+                    content_parts.append(f"`{line_num}` {line}")
+            elif line.startswith("#"):
+                # Other headers (# or ###)
+                content_parts.append(f"`{line_num}` {line}")
             else:
-                content_parts.append(line)
+                # Regular lines
+                content_parts.append(f"`{line_num}` {line}")
 
             # Add comments after line
             line_comments = [c for c in self.review.comments if c.line_number == i]
