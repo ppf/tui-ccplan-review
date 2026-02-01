@@ -284,16 +284,16 @@ class PlanReviewApp(App):
 
     def action_add_comment(self) -> None:
         """Add comment to current line."""
-        # Use current line as default
-        default_line = self.viewer.current_line if self.viewer else 1
+        # Use current line
+        current_line = self.viewer.current_line if self.viewer else 1
 
-        def handle_comment(result: Optional[tuple[int, str, str]]) -> None:
-            if result:
-                line_num, text, comment_type = result
-                self.review.add_comment(line_num, text, comment_type)
+        def handle_comment(comment_text: Optional[str]) -> None:
+            if comment_text:
+                self.review.add_comment(current_line, comment_text, "comment")
                 self.save_and_refresh()
+                self.notify(f"💬 Comment added to line {current_line}")
 
-        self.push_screen(CommentModal(default_line), handle_comment)
+        self.push_screen(CommentModal(current_line), handle_comment)
 
     def action_jump_to_line(self) -> None:
         """Jump to a specific line."""
