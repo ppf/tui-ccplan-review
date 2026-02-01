@@ -3,6 +3,11 @@
 
 set -e
 
+# Activate venv
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+source "$PROJECT_DIR/venv/bin/activate"
+
 # Find the latest plan in ~/.claude/plans/
 PLANS_DIR="${CLAUDE_PLANS_DIR:-$HOME/.claude/plans}"
 
