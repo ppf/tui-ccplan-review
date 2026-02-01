@@ -51,6 +51,7 @@ class CommentModal(ModalScreen[str]):
         margin-left: 1;
         min-width: 12;
         height: 3;
+        border: round;
     }
     """
 
@@ -137,6 +138,7 @@ class RejectModal(ModalScreen[str]):
         margin-left: 1;
         min-width: 12;
         height: 3;
+        border: round;
     }
     """
 
@@ -209,6 +211,7 @@ class LineJumpModal(ModalScreen[int]):
         margin-left: 1;
         min-width: 12;
         height: 3;
+        border: round;
     }
     """
 
@@ -296,6 +299,7 @@ class CommentSelectorModal(ModalScreen[int]):
         margin-left: 1;
         min-width: 12;
         height: 3;
+        border: round;
     }
     """
 
