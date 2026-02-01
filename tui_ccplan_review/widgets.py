@@ -51,7 +51,6 @@ class CommentModal(ModalScreen[str]):
         margin-left: 1;
         min-width: 12;
         height: 3;
-        border: round;
     }
     """
 
@@ -93,9 +92,19 @@ class CommentModal(ModalScreen[str]):
             # Trigger add button
             self.query_one("#add", Button).press()
 
+    def on_key(self, event) -> None:
+        """Handle ESC key."""
+        if event.key == "escape":
+            self.dismiss(None)
+
 
 class RejectModal(ModalScreen[str]):
     """Modal for rejecting a section."""
+
+    def on_key(self, event) -> None:
+        """Handle ESC key."""
+        if event.key == "escape":
+            self.dismiss(None)
 
     CSS = """
     RejectModal {
@@ -138,7 +147,6 @@ class RejectModal(ModalScreen[str]):
         margin-left: 1;
         min-width: 12;
         height: 3;
-        border: round;
     }
     """
 
@@ -169,6 +177,11 @@ class RejectModal(ModalScreen[str]):
 
 class LineJumpModal(ModalScreen[int]):
     """Modal for jumping to a specific line."""
+
+    def on_key(self, event) -> None:
+        """Handle ESC key."""
+        if event.key == "escape":
+            self.dismiss(None)
 
     CSS = """
     LineJumpModal {
@@ -211,7 +224,6 @@ class LineJumpModal(ModalScreen[int]):
         margin-left: 1;
         min-width: 12;
         height: 3;
-        border: round;
     }
     """
 
@@ -299,7 +311,6 @@ class CommentSelectorModal(ModalScreen[int]):
         margin-left: 1;
         min-width: 12;
         height: 3;
-        border: round;
     }
     """
 
