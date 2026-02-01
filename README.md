@@ -2,8 +2,6 @@
 
 Interactive terminal TUI for reviewing Claude Code implementation plans with rich features and tmux integration.
 
-![Plan Review Screenshot](docs/screenshots/plan-review-main.png)
-
 ## Features
 
 - 📄 **Rich text rendering** with syntax highlighting
@@ -32,7 +30,11 @@ This TUI provides a **keyboard-driven, terminal-native workflow** that integrate
 ### Development Install
 
 ```bash
-cd /Users/storm/PhpstormProjects/ppf/tui-ccplan-review
+# Clone the repository
+git clone https://github.com/ppf/tui-ccplan-review.git
+cd tui-ccplan-review
+
+# Create virtual environment and install
 python -m venv venv
 source venv/bin/activate
 pip install -e .
@@ -52,10 +54,12 @@ plan-review-tui ~/.claude/plans/my-plan.md
 
 After setup (see Tmux Integration section), just press:
 ```
-Ctrl+b Shift+P
+<leader> + Shift+P
 ```
 
 Latest plan opens instantly in popup! 🎉
+
+*Note: Default tmux leader is `Ctrl+b`, but yours may be different.*
 
 ## Keyboard Shortcuts
 
@@ -102,13 +106,21 @@ One-key access to plan reviews from tmux popup!
 
 **Add to `~/.zshrc`:**
 ```bash
-export PATH="$PATH:/Users/storm/PhpstormProjects/ppf/tui-ccplan-review/bin"
+# Replace <install-path> with where you cloned the repo
+export PATH="$PATH:<install-path>/tui-ccplan-review/bin"
+
+# Example:
+# export PATH="$PATH:$HOME/projects/tui-ccplan-review/bin"
 ```
 
 **Add to `~/.tmux.conf`:**
 ```bash
+# Replace <install-path> with where you cloned the repo
 bind-key P display-popup -E -w 90% -h 90% \
-  "/Users/storm/PhpstormProjects/ppf/tui-ccplan-review/bin/ccplan-review-latest"
+  "<install-path>/tui-ccplan-review/bin/ccplan-review-latest"
+
+# Or if you added bin to PATH (recommended):
+# bind-key P display-popup -E -w 90% -h 90% "ccplan-review-latest"
 ```
 
 **Reload tmux:**
@@ -118,12 +130,14 @@ tmux source-file ~/.tmux.conf
 
 ### Usage
 
-1. **In tmux**: Press `Ctrl+b` then `Shift+P` (or your leader + P)
+1. **In tmux**: Press `<leader> + Shift+P`
 2. **Review opens** in 90% popup with latest plan
 3. **Navigate** with `n/p`, **comment** with `c`, **approve/reject** with `a/r`
 4. **Generate summary**: Press `s` (auto-copied to clipboard)
 5. **Close**: Press `q`
 6. **Paste** summary back to Claude conversation
+
+*Note: Default tmux leader is `Ctrl+b`, but check your `~/.tmux.conf` if you've customized it.*
 
 **Note**: The `ccplan-review-latest` script automatically:
 - Activates the venv
@@ -167,7 +181,7 @@ tmux source-file ~/.tmux.conf
 
 ## Review Workflow
 
-1. **Launch** TUI with plan file (or use tmux `Ctrl+b P`)
+1. **Launch** TUI with plan file (or use tmux `<leader> + Shift+P`)
 2. **Navigate** sections with `n/p` (auto-scrolls to section start)
 3. **Jump** to specific line with `l` for precise navigation
 4. **Add comments** at any line with `c` key
@@ -179,16 +193,12 @@ tmux source-file ~/.tmux.conf
 
 ## Screenshots
 
-### Main Interface
-![Plan review with line numbers and comments](docs/screenshots/plan-review-main.png)
+*Screenshots coming soon! See [UI Overview](#ui-overview) section below for a text representation of the interface.*
 
-### Comment Modal
-![Add/edit comment modal](docs/screenshots/comment-modal.png)
-
-### Section Navigation
-![Section highlighting and navigation](docs/screenshots/section-nav.png)
-
-*Screenshots show the actual working interface with theme support, line numbers, inline comments, and section approvals.*
+Want to contribute screenshots? Add them to `docs/screenshots/`:
+- `plan-review-main.png` - Main interface
+- `comment-modal.png` - Comment modal
+- `section-nav.png` - Section navigation
 
 ## Review Data Storage
 
