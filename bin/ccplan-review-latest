@@ -1,0 +1,26 @@
+#!/bin/bash
+# Launch plan review TUI with the latest plan file
+
+set -e
+
+# Find the latest plan in ~/.claude/plans/
+PLANS_DIR="${CLAUDE_PLANS_DIR:-$HOME/.claude/plans}"
+
+if [ ! -d "$PLANS_DIR" ]; then
+    echo "Error: Plans directory not found: $PLANS_DIR"
+    echo "Set CLAUDE_PLANS_DIR environment variable or create ~/.claude/plans/"
+    exit 1
+fi
+
+# Find the most recently modified .md file
+LATEST_PLAN=$(find "$PLANS_DIR" -name "*.md" -type f -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
+
+if [ -z "$LATEST_PLAN" ]; then
+    echo "No plan files found in $PLANS_DIR"
+    echo ""
+    echo "Usage: ccplan-review <plan-file.md>"
+    exit 1
+fi
+
+# Launch the TUI with the latest plan
+exec ccplan-review "$LATEST_PLAN"

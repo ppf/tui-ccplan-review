@@ -46,17 +46,29 @@ plan-review-tui ~/.claude/plans/my-plan.md
 | `↑/↓` or `j/k` | Scroll |
 | `Home/End` or `g/G` | Jump to top/bottom |
 
-## Integration with Tmux
+## Tmux Integration
 
-Add to `~/.config/tmux/tmux.conf`:
-
+**Quick setup:**
 ```bash
-# Plan review popup
-bind-key P display-popup -E -w 90% -h 90% \\
-  "ccplan-review ~/.claude/plans/$(ls -t ~/.claude/plans/*.md | head -1)"
+# 1. Add bin to PATH (add to ~/.zshrc)
+export PATH="$PATH:/path/to/tui-ccplan-review/bin"
+
+# 2. Add to ~/.config/tmux/tmux.conf
+cat tmux-integration.conf >> ~/.config/tmux/tmux.conf
+
+# 3. Reload tmux
+tmux source-file ~/.config/tmux/tmux.conf
 ```
 
-Then press `<leader> + P` to open the latest plan in a popup.
+**Usage:**
+- Press `<leader> + Shift + P` in tmux
+- Plan opens in 90% popup
+- Review, comment, approve/reject
+- Press `s` to generate summary
+- Summary copied to clipboard
+- Paste back to Claude
+
+**See [INSTALL.md](INSTALL.md) for detailed setup.**
 
 ## Review Workflow
 
