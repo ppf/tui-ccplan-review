@@ -16,15 +16,27 @@ class CommentModal(ModalScreen[str]):
     }
 
     #comment-dialog {
-        width: 60;
+        width: 70;
         height: auto;
-        border: thick $background 80%;
+        border: heavy $accent;
         background: $surface;
-        padding: 1 2;
+        padding: 2 3;
+    }
+
+    #comment-dialog > Label {
+        color: $accent;
+        text-style: bold;
+        margin-bottom: 1;
     }
 
     #comment-input {
-        margin: 1 0;
+        margin: 1 0 2 0;
+        height: 3;
+        border: solid $accent-darken-2;
+    }
+
+    #comment-input:focus {
+        border: solid $accent;
     }
 
     #buttons {
@@ -36,6 +48,7 @@ class CommentModal(ModalScreen[str]):
 
     Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 
@@ -87,15 +100,27 @@ class RejectModal(ModalScreen[str]):
     }
 
     #reject-dialog {
-        width: 60;
+        width: 70;
         height: auto;
-        border: thick $background 80%;
+        border: heavy $error;
         background: $surface;
-        padding: 1 2;
+        padding: 2 3;
+    }
+
+    #reject-dialog > Label {
+        color: $error;
+        text-style: bold;
+        margin-bottom: 1;
     }
 
     #reason-input {
-        margin: 1 0;
+        margin: 1 0 2 0;
+        height: 3;
+        border: solid $error-darken-2;
+    }
+
+    #reason-input:focus {
+        border: solid $error;
     }
 
     #buttons {
@@ -107,6 +132,7 @@ class RejectModal(ModalScreen[str]):
 
     Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 
@@ -144,15 +170,27 @@ class LineJumpModal(ModalScreen[int]):
     }
 
     #jump-dialog {
-        width: 40;
+        width: 50;
         height: auto;
-        border: thick $background 80%;
+        border: heavy $success;
         background: $surface;
-        padding: 1 2;
+        padding: 2 3;
+    }
+
+    #jump-dialog > Label {
+        color: $success;
+        text-style: bold;
+        margin-bottom: 1;
     }
 
     #line-input {
-        margin: 1 0;
+        margin: 1 0 2 0;
+        height: 3;
+        border: solid $success-darken-2;
+    }
+
+    #line-input:focus {
+        border: solid $success;
     }
 
     #buttons {
@@ -164,6 +202,7 @@ class LineJumpModal(ModalScreen[int]):
 
     Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 
@@ -208,33 +247,47 @@ class CommentSelectorModal(ModalScreen[int]):
     }
 
     #selector-dialog {
-        width: 70;
-        height: auto;
-        border: thick $background 80%;
+        width: 80;
+        max-height: 30;
+        border: heavy $warning;
         background: $surface;
-        padding: 1 2;
+        padding: 2 3;
+    }
+
+    #selector-dialog > Label {
+        color: $warning;
+        text-style: bold;
+        margin-bottom: 1;
     }
 
     .comment-option {
-        margin: 1 0;
-        padding: 1;
+        margin: 0 0 1 0;
+        padding: 1 2;
         background: $panel;
-        border: solid $border;
+        border: solid $accent-darken-2;
+        width: 100%;
+        text-align: left;
     }
 
     .comment-option:hover {
-        background: $primary-background;
+        background: $accent-darken-1;
+        border: solid $accent;
+    }
+
+    .comment-option:focus {
+        background: $accent;
     }
 
     #buttons {
         width: 100%;
         height: auto;
         align: right middle;
-        margin-top: 1;
+        margin-top: 2;
     }
 
     Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 
