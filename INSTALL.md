@@ -8,8 +8,8 @@ cd /Users/storm/PhpstormProjects/ppf/tui-ccplan-review
 source venv/bin/activate
 pip install -e .
 
-# 2. Make the helper script executable
-chmod +x bin/ccplan-review-latest
+# 2. Make the helper scripts executable
+chmod +x bin/ccplan-review-latest bin/ccplan-review-pick
 
 # 3. Add bin to your PATH (add to ~/.zshrc or ~/.bashrc)
 export PATH="$PATH:/Users/storm/PhpstormProjects/ppf/tui-ccplan-review/bin"
@@ -32,8 +32,11 @@ tmux source-file ~/.config/tmux/tmux.conf
 Add to `~/.config/tmux/tmux.conf`:
 
 ```bash
-# Plan review popup
+# Plan review popup (latest plan across Claude + Codex)
 bind-key P display-popup -E -w 90% -h 90% "ccplan-review-latest"
+
+# Optional: picker popup (requires fzf)
+# bind-key p display-popup -E -w 90% -h 90% "ccplan-review-pick"
 ```
 
 Reload tmux:
@@ -61,8 +64,11 @@ tmux source-file ~/.config/tmux/tmux.conf
 # Review specific plan
 ccplan-review ~/.claude/plans/my-plan.md
 
-# Review latest plan
+# Review latest plan across Claude + Codex
 ccplan-review-latest
+
+# Pick a plan with fzf (requires fzf)
+ccplan-review-pick
 ```
 
 ## Workflow Integration
@@ -105,6 +111,11 @@ JSON
 Relative paths are resolved against the current working directory. If not set,
 `ccplan-review-latest` defaults to `~/.claude/plans`.
 
+### Codex Plans Directory
+
+If a `.codex/plans` directory exists in the current directory or a parent,
+`ccplan-review-latest` and `ccplan-review-pick` will include those plans.
+
 ### Custom Keybinding
 
 Change `P` to another key in tmux config:
@@ -129,6 +140,20 @@ pip install -e .
 Add bin directory to PATH:
 ```bash
 export PATH="$PATH:/path/to/tui-ccplan-review/bin"
+```
+
+### "Command not found: ccplan-review-pick"
+
+Add bin directory to PATH:
+```bash
+export PATH="$PATH:/path/to/tui-ccplan-review/bin"
+```
+
+### "fzf not found"
+
+Install fzf, for example:
+```bash
+brew install fzf
 ```
 
 ### No plans found

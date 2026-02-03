@@ -15,88 +15,19 @@ fi
 source "$PROJECT_DIR/venv/bin/activate"
 python -m pip install -e "$PROJECT_DIR" >/dev/null
 
-# Resolve plans directory from Claude settings (fallback to default)
-PLANS_DIR="$(
-python - << 'PY'
-import json
-import os
-import sys
-from pathlib import Path
-
-
-def warn(message: str) -> None:
-    print(message, file=sys.stderr)
-
-
-def resolve_from_settings(settings_path: Path):
-    if not settings_path.exists():
-        return None
-    try:
-        content = settings_path.read_text()
-    except OSError as exc:
-        print(
-            f"Error: Unable to read settings file: {settings_path} ({exc})",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    try:
-        data = json.loads(content)
-    except json.JSONDecodeError as exc:
-        print(
-            f"Error: Invalid JSON in settings file: {settings_path} ({exc})",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    if not isinstance(data, dict):
-        return None
-    value = data.get("plansDirectory")
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value.strip():
-        warn(
-            f"Warning: Invalid plansDirectory in {settings_path}; "
-            "falling back to defaults."
-        )
-        return None
-    expanded = os.path.expandvars(os.path.expanduser(value))
-    path = Path(expanded)
-    if not path.is_absolute():
-        path = Path.cwd() / path
-    try:
-        path = path.resolve()
-    except OSError:
-        path = path.absolute()
-    return str(path)
-
-
-def main() -> None:
-    settings_path = Path.home() / ".claude" / "settings.json"
-    resolved = resolve_from_settings(settings_path)
-    if resolved:
-        print(resolved)
-        return
-    default_path = Path.home() / ".claude" / "plans"
-    print(str(default_path))
-
-
-if __name__ == "__main__":
-    main()
-PY
-)"
-
-if [ ! -d "$PLANS_DIR" ]; then
-    echo "Error: Plans directory not found: $PLANS_DIR"
-    echo "Create the directory or set \"plansDirectory\" in ~/.claude/settings.json"
+# Resolve latest plan across Claude and Codex
+if ! LATEST_PLAN="$(python -m tui_ccplan_review.plan_discovery --latest)"; then
+    echo "Error: Unable to locate a plan in Claude or Codex plans directories." >&2
     exit 1
 fi
 
-# Find the most recently modified .md file
-LATEST_PLAN=$(find "$PLANS_DIR" -name "*.md" -type f -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
-
 if [ -z "$LATEST_PLAN" ]; then
-    echo "No plan files found in $PLANS_DIR"
-    echo ""
-    echo "Usage: ccplan-review <plan-file.md>"
+    echo "Error: No plan files found in Claude or Codex plans directories." >&2
+    exit 1
+fi
+
+if [ ! -f "$LATEST_PLAN" ]; then
+    echo "Error: Plan file not found: $LATEST_PLAN" >&2
     exit 1
 fi
 

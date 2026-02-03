@@ -1,0 +1,54 @@
+#!/bin/bash
+# Launch plan review TUI with an fzf plan picker
+
+set -euo pipefail
+
+# Activate venv
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+if [ ! -d "$PROJECT_DIR/venv" ]; then
+    echo "Creating venv: $PROJECT_DIR/venv"
+    python3 -m venv "$PROJECT_DIR/venv"
+fi
+
+source "$PROJECT_DIR/venv/bin/activate"
+python -m pip install -e "$PROJECT_DIR" >/dev/null
+
+if ! command -v fzf >/dev/null 2>&1; then
+    echo "Error: fzf not found. Install it with 'brew install fzf' or 'apt install fzf'." >&2
+    exit 1
+fi
+
+set +e
+PLAN_LINE="$(
+    python -m tui_ccplan_review.plan_discovery --list | \
+    fzf --delimiter=$'\t' --with-nth=1,2,3 --prompt="Select plan> " \
+        --height=40% --reverse
+)"
+STATUS=$?
+set -e
+
+if [ $STATUS -eq 130 ] || [ -z "$PLAN_LINE" ]; then
+    echo "Selection cancelled."
+    exit 130
+fi
+
+if [ $STATUS -ne 0 ]; then
+    echo "Error: Unable to select a plan." >&2
+    exit $STATUS
+fi
+
+PLAN_PATH="${PLAN_LINE##*$'\t'}"
+
+if [ -z "$PLAN_PATH" ]; then
+    echo "Error: Selected plan path is empty." >&2
+    exit 1
+fi
+
+if [ ! -f "$PLAN_PATH" ]; then
+    echo "Error: Plan file not found: $PLAN_PATH" >&2
+    exit 1
+fi
+
+exec ccplan-review "$PLAN_PATH"

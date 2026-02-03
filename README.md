@@ -14,6 +14,7 @@ Interactive terminal TUI for reviewing Claude Code implementation plans with ric
 - 🎨 **Theme support** - respects Textual theme (dracula, monokai, nord, etc.)
 - ⚡ **Tmux popup** - one-key launch from tmux
 - ⌨️ **Keyboard-driven** - fast, efficient workflow
+- 🧭 **Claude + Codex plans** - newest plan across both sources
 
 ## Why This Tool?
 
@@ -48,6 +49,12 @@ ccplan-review ~/.claude/plans/my-plan.md
 
 # Or use the alias
 plan-review-tui ~/.claude/plans/my-plan.md
+
+# Review latest plan across Claude + Codex
+ccplan-review-latest
+
+# Pick a plan with fzf (requires fzf)
+ccplan-review-pick
 ```
 
 ### Tmux Usage (Recommended)
@@ -121,6 +128,9 @@ bind-key P display-popup -E -w 90% -h 90% \
 
 # Or if you added bin to PATH (recommended):
 # bind-key P display-popup -E -w 90% -h 90% "ccplan-review-latest"
+
+# Optional: open a picker (requires fzf)
+# bind-key p display-popup -E -w 90% -h 90% "ccplan-review-pick"
 ```
 
 **Reload tmux:**
@@ -144,8 +154,11 @@ tmux source-file ~/.tmux.conf
 - Resolves `plansDirectory` from `~/.claude/settings.json`
 - Resolves relative `plansDirectory` paths against the current working directory
 - Falls back to `~/.claude/plans/` if not set
-- Finds the most recent plan in the resolved directory
+- Looks for Codex plans in the nearest parent `.codex/plans`
+- Finds the most recent plan across Claude and Codex
 - Launches the TUI
+
+**Note**: The `ccplan-review-pick` script uses `fzf` to select a plan from the same sources.
 
 **See [INSTALL.md](INSTALL.md) for alternative setups and troubleshooting.**
 
