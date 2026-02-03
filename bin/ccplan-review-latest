@@ -15,12 +15,78 @@ fi
 source "$PROJECT_DIR/venv/bin/activate"
 python -m pip install -e "$PROJECT_DIR" >/dev/null
 
-# Find the latest plan in ~/.claude/plans/
-PLANS_DIR="${CLAUDE_PLANS_DIR:-$HOME/.claude/plans}"
+# Resolve plans directory from Claude settings (fallback to default)
+PLANS_DIR="$(
+python - << 'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def warn(message: str) -> None:
+    print(message, file=sys.stderr)
+
+
+def resolve_from_settings(settings_path: Path):
+    if not settings_path.exists():
+        return None
+    try:
+        content = settings_path.read_text()
+    except OSError as exc:
+        print(
+            f"Error: Unable to read settings file: {settings_path} ({exc})",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as exc:
+        print(
+            f"Error: Invalid JSON in settings file: {settings_path} ({exc})",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if not isinstance(data, dict):
+        return None
+    value = data.get("plansDirectory")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        warn(
+            f"Warning: Invalid plansDirectory in {settings_path}; "
+            "falling back to defaults."
+        )
+        return None
+    expanded = os.path.expandvars(os.path.expanduser(value))
+    path = Path(expanded)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    try:
+        path = path.resolve()
+    except OSError:
+        path = path.absolute()
+    return str(path)
+
+
+def main() -> None:
+    settings_path = Path.home() / ".claude" / "settings.json"
+    resolved = resolve_from_settings(settings_path)
+    if resolved:
+        print(resolved)
+        return
+    default_path = Path.home() / ".claude" / "plans"
+    print(str(default_path))
+
+
+if __name__ == "__main__":
+    main()
+PY
+)"
 
 if [ ! -d "$PLANS_DIR" ]; then
     echo "Error: Plans directory not found: $PLANS_DIR"
-    echo "Set CLAUDE_PLANS_DIR environment variable or create ~/.claude/plans/"
+    echo "Create the directory or set \"plansDirectory\" in ~/.claude/settings.json"
     exit 1
 fi
 

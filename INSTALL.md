@@ -80,7 +80,7 @@ ccplan-review-latest
 
 ```
 ~/.claude/
-├── plans/              # Plan files
+├── plans/              # Plan files (default when not set in settings)
 │   ├── plan-2024-01.md
 │   └── plan-2024-02.md
 └── reviews/            # Review data (auto-created)
@@ -92,12 +92,18 @@ ccplan-review-latest
 
 ### Custom Plans Directory
 
-Set environment variable:
+Set `plansDirectory` in Claude settings:
 
 ```bash
-# Add to ~/.zshrc or ~/.bashrc
-export CLAUDE_PLANS_DIR="$HOME/Documents/claude-plans"
+cat > ~/.claude/settings.json << 'JSON'
+{
+  "plansDirectory": "/path/to/claude-plans"
+}
+JSON
 ```
+
+Relative paths are resolved against the current working directory. If not set,
+`ccplan-review-latest` defaults to `~/.claude/plans`.
 
 ### Custom Keybinding
 
@@ -131,6 +137,8 @@ Create plans directory:
 ```bash
 mkdir -p ~/.claude/plans
 ```
+
+Or set `plansDirectory` in `~/.claude/settings.json` to a different path.
 
 ### Tmux keybinding not working
 
