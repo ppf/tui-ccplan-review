@@ -218,7 +218,7 @@ Reviews auto-save to `~/.claude/reviews/<plan-name>.json`:
 
 ```json
 {
-  "plan_path": "/Users/you/.claude/plans/my-plan.md",
+  "plan_path": "/Users/$USER/.claude/plans/my-plan.md",
   "comments": [
     {
       "line_number": 14,
