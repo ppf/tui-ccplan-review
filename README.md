@@ -141,7 +141,10 @@ tmux source-file ~/.tmux.conf
 
 **Note**: The `ccplan-review-latest` script automatically:
 - Activates the venv
-- Finds the most recent plan in `~/.claude/plans/`
+- Resolves `plansDirectory` from `~/.claude/settings.json`
+- Resolves relative `plansDirectory` paths against the current working directory
+- Falls back to `~/.claude/plans/` if not set
+- Finds the most recent plan in the resolved directory
 - Launches the TUI
 
 **See [INSTALL.md](INSTALL.md) for alternative setups and troubleshooting.**
@@ -293,7 +296,7 @@ Reviews auto-save to `~/.claude/reviews/<plan-name>.json`:
 ### File Locations
 ```
 ~/.claude/
-├── plans/                    # Plan markdown files
+├── plans/                    # Plan markdown files (default when not set in settings)
 │   └── my-plan.md
 └── reviews/                  # Review data (auto-created)
     └── my-plan.json
