@@ -209,12 +209,8 @@ tmux source-file ~/.tmux.conf
 
 ## Screenshots
 
-*Screenshots coming soon! See [UI Overview](#ui-overview) section below for a text representation of the interface.*
-
-Want to contribute screenshots? Add them to `docs/screenshots/`:
-- `plan-review-main.png` - Main interface
-- `comment-modal.png` - Comment modal
-- `section-nav.png` - Section navigation
+![Plan Review Screenshot](docs/screenshots/Screenshot%202026-02-03%20at%2010.06.49.png)
+![Plan Review Screenshot](docs/screenshots/Screenshot%202026-02-03%20at%2010.06.57.png)
 
 ## Review Data Storage
 
@@ -222,7 +218,7 @@ Reviews auto-save to `~/.claude/reviews/<plan-name>.json`:
 
 ```json
 {
-  "plan_path": "/Users/storm/.claude/plans/my-plan.md",
+  "plan_path": "/Users/you/.claude/plans/my-plan.md",
   "comments": [
     {
       "line_number": 14,
