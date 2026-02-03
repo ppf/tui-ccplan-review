@@ -1,12 +1,19 @@
 #!/bin/bash
 # Launch plan review TUI with the latest plan file
 
-set -e
+set -euo pipefail
 
 # Activate venv
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+if [ ! -d "$PROJECT_DIR/venv" ]; then
+    echo "Creating venv: $PROJECT_DIR/venv"
+    python3 -m venv "$PROJECT_DIR/venv"
+fi
+
 source "$PROJECT_DIR/venv/bin/activate"
+python -m pip install -e "$PROJECT_DIR" >/dev/null
 
 # Find the latest plan in ~/.claude/plans/
 PLANS_DIR="${CLAUDE_PLANS_DIR:-$HOME/.claude/plans}"

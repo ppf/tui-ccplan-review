@@ -9,6 +9,7 @@ from rich.text import Text
 from rich.console import RenderableType
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
+from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Static, Input
 from textual.binding import Binding
 
@@ -59,16 +60,34 @@ class PlanViewer(VerticalScroll):
 
     def jump_to_line(self, line_num: int) -> None:
         """Jump to a specific line."""
-        if 1 <= line_num <= self.total_lines:
-            self.current_line = line_num
-            # Update current section based on line
-            for idx, section in enumerate(self.sections):
-                start, end, _ = section
-                if start <= line_num <= end:
-                    self.current_section_index = idx
-                    break
-            # Scroll to line
-            self.scroll_to(y=max(0, line_num - 3), animate=True)
+        if self.set_current_line(line_num):
+            self.scroll_to(y=max(0, self.current_line - 3), animate=True)
+
+    def set_current_line(self, line_num: int) -> bool:
+        """Set current line selection and update current section."""
+        if self.total_lines <= 0:
+            return False
+
+        clamped = max(1, min(line_num, self.total_lines))
+        if clamped == self.current_line:
+            return False
+
+        self.current_line = clamped
+
+        for idx, section in enumerate(self.sections):
+            start, end, _ = section
+            if start <= self.current_line <= end:
+                self.current_section_index = idx
+                break
+
+        return True
+
+    def move_current_line(self, delta: int) -> bool:
+        """Move current line selection by delta and keep it visible."""
+        changed = self.set_current_line(self.current_line + delta)
+        if changed:
+            self.scroll_to(y=max(0, self.current_line - 3), animate=False)
+        return changed
 
     def render_plan(self) -> None:
         """Render plan with Rich Text for better styling."""
@@ -77,27 +96,24 @@ class PlanViewer(VerticalScroll):
         # Get current section for highlighting
         current_section = self.get_current_section()
         current_start = current_section[0] if current_section else -1
-        current_end = current_section[2] if current_section else -1
+        current_end = current_section[1] if current_section else -1
 
         # Build Rich Text with line numbers and backgrounds
         text = Text()
         line_num_width = len(str(len(lines)))
 
         for i, line in enumerate(lines, 1):
-            # Check for section status
-            section_status = ""
-            is_current_section = False
+            is_section_header = line.startswith("## ")
+            is_current_section_header = is_section_header and i == current_start
 
-            for section in self.review.sections:
-                if section.start_line <= i <= section.end_line:
-                    if section.status == "approved":
+            section_status = ""
+            if is_section_header:
+                review_entry = next((s for s in self.review.sections if s.start_line == i), None)
+                if review_entry:
+                    if review_entry.status == "approved":
                         section_status = " ✅"
-                    elif section.status == "rejected":
+                    elif review_entry.status == "rejected":
                         section_status = " ❌"
-                    # Check if this is the current section
-                    if section.start_line == current_start:
-                        is_current_section = True
-                    break
 
             # Line number
             line_num = f"{i:>{line_num_width}} "
@@ -113,9 +129,9 @@ class PlanViewer(VerticalScroll):
                 text.append(line_num, style="dim")
 
             # Add content with appropriate styling
-            if line.startswith("## "):
+            if is_section_header:
                 # Section header
-                if is_current_section:
+                if is_current_section_header:
                     text.append(line + section_status, style="bold white on blue")
                 else:
                     text.append(line + section_status, style="bold cyan")
@@ -256,6 +272,8 @@ class PlanReviewApp(App):
         Binding("n", "next_section", "Next"),
         Binding("p", "prev_section", "Prev"),
         Binding("s", "generate_summary", "Summary"),
+        Binding("up", "line_up", "Line Up", show=False),
+        Binding("down", "line_down", "Line Down", show=False),
         Binding("?", "show_help", "Help"),
     ]
 
@@ -380,6 +398,28 @@ class PlanReviewApp(App):
 
         self.push_screen(LineJumpModal(max_line), handle_jump)
 
+    def _in_modal(self) -> bool:
+        """True when a modal screen is active (avoid stealing arrow keys in dialogs)."""
+        return isinstance(self.screen, ModalScreen)
+
+    def action_line_up(self) -> None:
+        """Move selection up one line."""
+        if self._in_modal() or not self.viewer:
+            return
+        if self.viewer.move_current_line(-1):
+            self.viewer.render_plan()
+            if self.status_bar:
+                self.status_bar.update_status()
+
+    def action_line_down(self) -> None:
+        """Move selection down one line."""
+        if self._in_modal() or not self.viewer:
+            return
+        if self.viewer.move_current_line(1):
+            self.viewer.render_plan()
+            if self.status_bar:
+                self.status_bar.update_status()
+
     def action_approve_section(self) -> None:
         """Approve current section."""
         section = self.viewer.get_current_section() if self.viewer else None
@@ -467,6 +507,7 @@ class PlanReviewApp(App):
 **Keyboard Shortcuts:**
 
 - `l` - Jump to line
+- `↑/↓` - Move current line
 - `c` - Add comment
 - `e` - Edit comment at current line
 - `d` - Delete comment at current line
@@ -478,7 +519,7 @@ class PlanReviewApp(App):
 - `q` - Quit
 
 **Navigation:**
-- `↑/↓` or `j/k` - Scroll
+- `j/k` - Scroll
 - `Home/End` or `g/G` - Top/Bottom
         """
         self.notify(help_text.strip(), title="Help", timeout=10)

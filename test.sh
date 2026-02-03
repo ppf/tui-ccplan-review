@@ -1,7 +1,10 @@
 #!/bin/bash
 # Quick test script for TUI plan review
 
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 echo "🧪 Testing TUI Plan Review Tool"
 echo ""
@@ -31,6 +34,12 @@ echo ""
 echo "🚀 Launching TUI (press 'q' to quit)..."
 echo ""
 
-# Activate venv and run
+# Ensure venv exists, then install and run
+if [ ! -d "venv" ]; then
+    echo "ℹ️  Creating venv (./venv)..."
+    python3 -m venv venv
+fi
+
 source venv/bin/activate
+python -m pip install -e . >/dev/null
 ccplan-review ~/.claude/plans/test-plan.md
