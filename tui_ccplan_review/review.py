@@ -118,7 +118,37 @@ class PlanReview:
 
     def generate_summary(self) -> str:
         """Generate markdown summary of review."""
-        lines = [f"# Plan Review: {Path(self.plan_path).name}\n"]
+        plan_name = Path(self.plan_path).name
+        lines = [f"# Plan Review: {plan_name}\n"]
+
+        sections_sorted = sorted(self.sections, key=lambda s: (s.start_line, s.end_line, s.section_name))
+
+        def section_for_line(line_number: int) -> Optional[SectionReview]:
+            # Prefer the smallest section that contains the line (most specific).
+            containing = [s for s in sections_sorted if s.start_line <= line_number <= s.end_line]
+            if containing:
+                return min(containing, key=lambda s: (s.end_line - s.start_line, s.start_line))
+            # Otherwise, use the latest section that starts before the line.
+            previous = [s for s in sections_sorted if s.start_line <= line_number]
+            if previous:
+                return max(previous, key=lambda s: s.start_line)
+            return None
+
+        plan_lines: dict[int, str] = {}
+        try:
+            raw = Path(self.plan_path).read_text(encoding="utf-8").splitlines()
+            plan_lines = {i + 1: line for i, line in enumerate(raw)}
+        except (OSError, UnicodeDecodeError):
+            plan_lines = {}
+
+        def line_excerpt(line_number: int, limit: int = 120) -> Optional[str]:
+            text = plan_lines.get(line_number)
+            if not text:
+                return None
+            cleaned = text.rstrip()
+            if len(cleaned) <= limit:
+                return cleaned
+            return f"{cleaned[:limit].rstrip()}..."
 
         # Statistics
         approved = sum(1 for s in self.sections if s.status == "approved")
@@ -126,38 +156,94 @@ class PlanReview:
         pending = sum(1 for s in self.sections if s.status == "pending")
 
         lines.append("## Summary")
-        if approved:
-            lines.append(f"- ✅ {approved} section{'s' if approved != 1 else ''} approved")
-        if rejected:
-            lines.append(f"- ❌ {rejected} section{'s' if rejected != 1 else ''} needs revision")
-        if pending:
-            lines.append(f"- ⏳ {pending} section{'s' if pending != 1 else ''} pending")
-        if self.comments:
-            lines.append(f"- 💬 {len(self.comments)} comment{'s' if len(self.comments) != 1 else ''}")
+        lines.append(f"- File: `{plan_name}`")
+        lines.append(f"- Sections: ✅ {approved} approved, ❌ {rejected} needs revision, ⏳ {pending} pending")
+        lines.append(f"- Comments: 💬 {len(self.comments)}")
         lines.append("")
 
-        # Comments
+        # Action items (quick to scan for another agent)
+        rejected_sections = [s for s in sections_sorted if s.status == "rejected"]
+        if rejected_sections:
+            lines.append("## Action Items\n")
+            for section in rejected_sections:
+                reason = section.reason or "No reason provided"
+                lines.append(
+                    f"- Fix **{section.section_name}** (Lines {section.start_line}-{section.end_line}): {reason}"
+                )
+            lines.append("")
+
+        # Comments (grouped by line, include section + excerpt when available)
         if self.comments:
             lines.append("## Comments\n")
-            for comment in sorted(self.comments, key=lambda c: c.line_number):
-                emoji = {"comment": "💬", "question": "❓", "suggestion": "💡"}.get(comment.type, "💬")
-                lines.append(f"### Line {comment.line_number}")
-                lines.append(f"{emoji} {comment.text}\n")
+            comments_by_line: dict[int, list[Comment]] = {}
+            for comment in self.comments:
+                comments_by_line.setdefault(comment.line_number, []).append(comment)
 
-        # Approved sections
-        approved_sections = [s for s in self.sections if s.status == "approved"]
+            for line_number in sorted(comments_by_line.keys()):
+                section = section_for_line(line_number)
+                section_label = f": {section.section_name}" if section else ""
+                excerpt = line_excerpt(line_number)
+                excerpt_label = f" — `{excerpt}`" if excerpt else ""
+                lines.append(f"### Line {line_number}{section_label}{excerpt_label}")
+
+                for i, comment in enumerate(comments_by_line[line_number], start=1):
+                    emoji = {"comment": "💬", "question": "❓", "suggestion": "💡"}.get(comment.type, "💬")
+                    prefix = f"{i}." if len(comments_by_line[line_number]) > 1 else "-"
+                    lines.append(f"{prefix} {emoji} {comment.text}")
+                lines.append("")
+
+        # Sections (include line ranges for easy verification)
+        approved_sections = [s for s in sections_sorted if s.status == "approved"]
+        pending_sections = [s for s in sections_sorted if s.status == "pending"]
+
         if approved_sections:
             lines.append("## Approved Sections\n")
             for section in approved_sections:
-                lines.append(f"✅ {section.section_name}")
+                lines.append(f"- ✅ {section.section_name} (Lines {section.start_line}-{section.end_line})")
             lines.append("")
 
-        # Rejected sections
-        rejected_sections = [s for s in self.sections if s.status == "rejected"]
         if rejected_sections:
             lines.append("## Needs Revision\n")
             for section in rejected_sections:
-                lines.append(f"### {section.section_name}")
-                lines.append(f"❌ {section.reason or 'No reason provided'}\n")
+                reason = section.reason or "No reason provided"
+                lines.append(f"### {section.section_name} (Lines {section.start_line}-{section.end_line})")
+                lines.append(f"❌ {reason}\n")
+
+        if pending_sections:
+            lines.append("## Pending Sections\n")
+            for section in pending_sections:
+                lines.append(f"- ⏳ {section.section_name} (Lines {section.start_line}-{section.end_line})")
+            lines.append("")
+
+        # Machine-readable payload (easy for Claude/Codex to parse)
+        payload = {
+            "plan": plan_name,
+            "generated_at": datetime.now().isoformat(),
+            "stats": {"approved": approved, "rejected": rejected, "pending": pending, "comments": len(self.comments)},
+            "sections": [
+                {
+                    "name": s.section_name,
+                    "start_line": s.start_line,
+                    "end_line": s.end_line,
+                    "status": s.status,
+                    "reason": s.reason,
+                }
+                for s in sections_sorted
+            ],
+            "comments": [
+                {
+                    "line": c.line_number,
+                    "type": c.type,
+                    "text": c.text,
+                    "section": (section_for_line(c.line_number).section_name if section_for_line(c.line_number) else None),
+                    "line_excerpt": line_excerpt(c.line_number),
+                }
+                for c in sorted(self.comments, key=lambda c: (c.line_number, c.timestamp))
+            ],
+        }
+        lines.append("## Machine Readable\n")
+        lines.append("```json")
+        lines.append(json.dumps(payload, indent=2, ensure_ascii=True))
+        lines.append("```")
 
         return "\n".join(lines)

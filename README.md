@@ -193,7 +193,13 @@ tmux source-file ~/.tmux.conf
 
 ## Screenshots
 
-*Screenshots coming soon! See [UI Overview](#ui-overview) section below for a text representation of the interface.*
+Main review UI:
+
+![Plan review main](docs/screenshots/plan-review-main.png)
+
+Add comment modal:
+
+![Plan review comment](docs/screenshots/plan-review-comment.png)
 
 Want to contribute screenshots? Add them to `docs/screenshots/`:
 - `plan-review-main.png` - Main interface
