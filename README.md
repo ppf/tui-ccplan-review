@@ -53,6 +53,9 @@ plan-review-tui ~/.claude/plans/my-plan.md
 # Review latest plan across Claude + Codex
 ccplan-review-latest
 
+# Review a specific plan file directly
+ccplan-review-latest /path/to/specific-plan.md
+
 # Pick a plan with fzf (requires fzf)
 ccplan-review-pick
 ```
@@ -154,8 +157,10 @@ tmux source-file ~/.tmux.conf
 - Resolves `plansDirectory` from `~/.claude/settings.json`
 - Resolves relative `plansDirectory` paths against the current working directory
 - Falls back to `~/.claude/plans/` if not set
+- Looks for project-local `.claude/plans/` (searches upward from cwd)
 - Looks for Codex plans in the nearest parent `.codex/plans`
-- Finds the most recent plan across Claude and Codex
+- Finds the most recent plan across all sources
+- Accepts a direct file path argument (skips discovery)
 - Launches the TUI
 
 **Note**: The `ccplan-review-pick` script uses `fzf` to select a plan from the same sources.

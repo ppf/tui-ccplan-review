@@ -89,6 +89,15 @@ def find_codex_plans_dir(cwd: Path) -> Optional[Path]:
     return None
 
 
+def find_claude_local_plans_dir(cwd: Path) -> Optional[Path]:
+    """Find nearest parent .claude/plans directory, starting from cwd."""
+    for base in [cwd, *cwd.parents]:
+        candidate = base / ".claude" / "plans"
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 def _collect_from_dir(plans_dir: Path, source: str) -> list[PlanInfo]:
     if not plans_dir.exists():
         _warn(f"Warning: Plans directory not found: {plans_dir}")
@@ -120,7 +129,10 @@ def _collect_from_dir(plans_dir: Path, source: str) -> list[PlanInfo]:
     return plans
 
 
-def collect_plans(cwd: Path) -> tuple[list[PlanInfo], list[str]]:
+def collect_plans(
+    cwd: Path,
+    quiet_missing_codex: bool = False,
+) -> tuple[list[PlanInfo], list[str]]:
     """Collect plans from Claude and Codex sources."""
     checked: list[str] = []
     plans: list[PlanInfo] = []
@@ -129,12 +141,18 @@ def collect_plans(cwd: Path) -> tuple[list[PlanInfo], list[str]]:
     checked.append(f"Claude: {claude_dir}")
     plans.extend(_collect_from_dir(claude_dir, "Claude"))
 
+    claude_local_dir = find_claude_local_plans_dir(cwd)
+    if claude_local_dir is not None and claude_local_dir != claude_dir:
+        checked.append(f"Claude (local): {claude_local_dir}")
+        plans.extend(_collect_from_dir(claude_local_dir, "Claude (local)"))
+
     codex_dir = find_codex_plans_dir(cwd)
     if codex_dir is None:
-        _warn(
-            "Warning: Codex plans directory not found (searched upward from "
-            "current directory)."
-        )
+        if not quiet_missing_codex:
+            _warn(
+                "Warning: Codex plans directory not found (searched upward from "
+                "current directory)."
+            )
         checked.append("Codex: (not found)")
     else:
         checked.append(f"Codex: {codex_dir}")
@@ -161,6 +179,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="Discover Claude and Codex plan files."
     )
+    parser.add_argument(
+        "--quiet-missing-codex",
+        action="store_true",
+        help="Suppress warning when no .codex/plans directory is found.",
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
         "--latest",
@@ -175,7 +198,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     cwd = Path.cwd()
-    plans, checked = collect_plans(cwd)
+    plans, checked = collect_plans(
+        cwd, quiet_missing_codex=args.quiet_missing_codex
+    )
     if not plans:
         _print_no_plans(checked)
         return 1
